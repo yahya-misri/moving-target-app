@@ -1,6 +1,7 @@
 package com.demo.movingtarget.ui
 
 import android.annotation.SuppressLint
+import android.content.SharedPreferences
 import android.media.AudioAttributes
 import android.media.SoundPool
 import android.os.Bundle
@@ -10,9 +11,14 @@ import android.view.*
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import com.demo.movingtarget.R
 import com.demo.movingtarget.databinding.FragmentQuickBinding
+import com.demo.movingtarget.utils.PreferenceHelper
+import com.demo.movingtarget.utils.PreferenceHelper.get
+import com.demo.movingtarget.utils.PreferenceHelper.set
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import java.util.*
@@ -20,6 +26,7 @@ import java.util.*
 
 class QuickFragment : Fragment(), View.OnClickListener {
 
+    private lateinit var preference: SharedPreferences
     private lateinit var countDownTimer: CountDownTimer
     private lateinit var binding: FragmentQuickBinding
     private var currentView: View? = null
@@ -35,13 +42,37 @@ class QuickFragment : Fragment(), View.OnClickListener {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        preference = PreferenceHelper.customPrefs(
+            requireContext(),
+            findNavController().currentDestination?.id.toString()
+        )
+
         if (currentView == null) {
+
             currentView = inflater.inflate(R.layout.fragment_quick, container, false)
             binding = FragmentQuickBinding.bind(currentView!!)
             init()
             setOnClickListener()
+
+            preference["time", ""].let {
+                if (it.isNotEmpty() && it != "0") {
+                    timer = it
+                    setTimer()
+                }
+            }
+
         }
         return currentView!!
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+
+        storeInPreference()
+    }
+
+    private fun storeInPreference() {
+        preference["time"] = timer
     }
 
 
@@ -103,6 +134,7 @@ class QuickFragment : Fragment(), View.OnClickListener {
             }
             R.id.two -> {
                 timer = "${timer}2"
+                Log.e("Data>>>>>", timer)
                 setTimer()
 
             }
@@ -150,7 +182,7 @@ class QuickFragment : Fragment(), View.OnClickListener {
             R.id.clear -> {
                 timer = ""
                 alarmTimer = ""
-                binding.timerEdt.text = "0.00"
+                binding.timerEdt.text = "0"
             }
             R.id.startTimer -> {
 
@@ -177,6 +209,7 @@ class QuickFragment : Fragment(), View.OnClickListener {
                 var task = object : TimerTask() {
                     override fun run() {
                         lifecycleScope.launch(Dispatchers.Main) {
+                            delay(150)
                             spEnd.play(soundIdEnd, 500F, 500F, 1, 0, 1f)
                             binding.startTimer.background.setTint(
                                 ContextCompat.getColor(
@@ -203,12 +236,16 @@ class QuickFragment : Fragment(), View.OnClickListener {
     }
 
     private fun setTimer() {
-        val formattedValue = DecimalFormat("0.00").format(timer.toInt() / 100.0)
-        alarmTimer = formattedValue
-        binding.timerEdt.text = formattedValue
 
-        countDownTimer = object : CountDownTimer(alarmTimer.toDouble().toLong() * 1000, 1000) {
-            override fun onTick(millisUntilFinished: Long) {}
+        val formattedValue = DecimalFormat("0.00").format(timer.toDouble() / 100)
+
+        alarmTimer = formattedValue.toString()
+        binding.timerEdt.text = formattedValue.toString()
+        Log.e("DAta>>>", "setTimer:  alarm: ${alarmTimer.toDouble() * 1000}")
+        countDownTimer = object : CountDownTimer(((alarmTimer.toDouble() * 1000)+150).toLong(), 500) {
+            override fun onTick(millisUntilFinished: Long) {
+                Log.e("DAta>>>", "millisecond: $millisUntilFinished")
+            }
 
             override fun onFinish() {
                 spEnd.play(soundIdEnd, 1F, 1F, 1, 0, 1f)

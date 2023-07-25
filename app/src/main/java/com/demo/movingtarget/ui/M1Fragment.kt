@@ -1,6 +1,7 @@
 package com.demo.movingtarget.ui
 
 import android.annotation.SuppressLint
+import android.content.SharedPreferences
 import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.media.SoundPool
@@ -16,8 +17,12 @@ import android.widget.TextView.OnEditorActionListener
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import com.demo.movingtarget.R
 import com.demo.movingtarget.databinding.FragmentM1Binding
+import com.demo.movingtarget.utils.PreferenceHelper
+import com.demo.movingtarget.utils.PreferenceHelper.get
+import com.demo.movingtarget.utils.PreferenceHelper.set
 import com.demo.movingtarget.utils.SessionManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -27,6 +32,8 @@ import java.util.*
 
 class M1Fragment : Fragment(), View.OnClickListener, TextWatcher {
 
+    private lateinit var preference: SharedPreferences
+    private var selectedRadioBtnID: Int = 0
     private var soundId = 0
     private lateinit var sp: SoundPool
     private var soundIdEnd = 0
@@ -47,6 +54,9 @@ class M1Fragment : Fragment(), View.OnClickListener, TextWatcher {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+
+        preference = PreferenceHelper.customPrefs(requireContext(), findNavController().currentDestination?.id.toString())
+
         if (currentView == null) {
             currentView = inflater.inflate(R.layout.fragment_m1, container, false)
             binding = FragmentM1Binding.bind(currentView!!)
@@ -55,8 +65,55 @@ class M1Fragment : Fragment(), View.OnClickListener, TextWatcher {
             textWatcher()
             textChangeListener()
 
+
+            binding.playerTable.p1Time.setText(preference.get("p1", ""))
+            binding.playerTable.p2Time.setText(preference.get("p2", ""))
+            binding.playerTable.p3Time.setText(preference.get("p3", ""))
+            binding.playerTable.p4Time.setText(preference.get("p4", ""))
+            binding.playerTable.p5Time.setText(preference.get("p5", ""))
+            binding.playerTable.p6Time.setText(preference.get("p6", ""))
+            binding.playerTable.p1Name.setText(preference.get("p1Name", ""))
+            binding.playerTable.p2Name.setText(preference.get("p2Name", ""))
+            binding.playerTable.p3Name.setText(preference.get("p3Name", ""))
+            binding.playerTable.p4Name.setText(preference.get("p4Name", ""))
+            binding.playerTable.p5Name.setText(preference.get("p5Name", ""))
+            binding.playerTable.p6Name.setText(preference.get("p6Name", ""))
+
         }
         return currentView!!
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        val radioButtonId =  preference.get("currentSelectedID", 0)
+        if (radioButtonId!=0){
+
+            val radioButton = currentView?.findViewById<RadioButton>(radioButtonId)
+            radioButton?.performClick()
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+
+        storeInPreference()
+    }
+
+    private fun storeInPreference() {
+        preference["p1"] = binding.playerTable.p1Time.text.toString()
+        preference["p2"] = binding.playerTable.p2Time.text.toString()
+        preference["p3"] = binding.playerTable.p3Time.text.toString()
+        preference["p4"] = binding.playerTable.p4Time.text.toString()
+        preference["p5"] = binding.playerTable.p5Time.text.toString()
+        preference["p6"] = binding.playerTable.p6Time.text.toString()
+        preference["p1Name"] = binding.playerTable.p1Name.text.toString()
+        preference["p2Name"] = binding.playerTable.p2Name.text.toString()
+        preference["p3Name"] = binding.playerTable.p3Name.text.toString()
+        preference["p4Name"] = binding.playerTable.p4Name.text.toString()
+        preference["p5Name"] = binding.playerTable.p5Name.text.toString()
+        preference["p6Name"] = binding.playerTable.p6Name.text.toString()
+        preference["currentSelectedID"] = selectedRadioBtnID
     }
 
     private fun textChangeListener() {
@@ -72,7 +129,7 @@ class M1Fragment : Fragment(), View.OnClickListener, TextWatcher {
         timerValue = time.toDouble()
         Log.e("TAG", "setCountCountTimer: $timerValue")
         var interval = 200L
-        countDownTimer = object : CountDownTimer(timerValue.toLong() * 1000, interval) {
+        countDownTimer = object : CountDownTimer((timerValue.toDouble() * 1000).toLong(), interval) {
 
             override fun onTick(millisUntilFinished: Long) {
                 Log.e("TAG", "onTick: $millisUntilFinished")
@@ -101,6 +158,7 @@ class M1Fragment : Fragment(), View.OnClickListener, TextWatcher {
 
 
     }
+
 
     private fun textWatcher() {
         binding.playerTable.p1Time.setOnEditorActionListener(
@@ -235,6 +293,7 @@ class M1Fragment : Fragment(), View.OnClickListener, TextWatcher {
             }
             return@setOnKeyListener false
         }
+
 
 
         audioAttributes = AudioAttributes.Builder()
@@ -414,6 +473,7 @@ class M1Fragment : Fragment(), View.OnClickListener, TextWatcher {
                 var task = object : TimerTask() {
                     override fun run() {
                         lifecycleScope.launch(Dispatchers.Main) {
+                            delay(150)
                             spEnd.play(soundIdEnd, 500F, 500F, 1, 0, 1f)
                             binding.playerTable.startTimer.isEnabled = true
                             binding.playerTable.startTimer.isVisible = true
@@ -423,13 +483,11 @@ class M1Fragment : Fragment(), View.OnClickListener, TextWatcher {
                 }
                 timer.schedule(task, delay.toLong())
 
-
             } else {
                 if (this::countDownTimer.isInitialized) {
                     countDownTimer.start()
                 }
             }
-
 
         }
     }
@@ -450,6 +508,7 @@ class M1Fragment : Fragment(), View.OnClickListener, TextWatcher {
             p5RadioBtn.isChecked = false
             p6RadioBtn.isChecked = false
         }
+        selectedRadioBtnID = selectedRadioBtn.id
         selectedRadioBtn.isChecked = true
         if (time.isNotEmpty())
             setCountCountTimer(time)
