@@ -1,6 +1,7 @@
 package com.demo.movingtarget.ui
 
 import android.content.Intent
+import android.content.SharedPreferences
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.KeyEvent
@@ -11,6 +12,7 @@ import androidx.navigation.NavController
 import androidx.navigation.findNavController
 import com.demo.movingtarget.R
 import com.demo.movingtarget.databinding.ActivityMainBinding
+import com.demo.movingtarget.utils.PreferenceHelper
 
 class MainActivity : AppCompatActivity(), View.OnClickListener {
 
@@ -21,8 +23,11 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        PreferenceHelper.clearAllSharedPreferences(this)
+
         navController = findNavController(R.id.navHostFragment)
         setOnClickListeners()
+
     }
 
     private fun setOnClickListeners() {
